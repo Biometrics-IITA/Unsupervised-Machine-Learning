@@ -1,0 +1,194 @@
+---
+ title: "<p style=\"color:black,text-align:center\">Unsupervised Machine Learning </p>" 
+ author:    
+  - name: <font color=#ff6600><b>Biometrics Unit</b></font>      
+    affiliation: <font color=#ff6600><b>International Institute of Tropical Agriculture (IITA)</b></font>
+---
+
+# [**Unsupervised Learning**]{style="color: #234F1E;"}
+
+In unsupervised learning, the algorithm is trained using a dataset without labeled outputs, meaning the input data does not come with predefined answers. The model learns to identify patterns and relationships within the data. This approach is commonly used for tasks like clustering, dimensionality reduction, and anomaly detection. As the name implies, unsupervised learning employs self-learning algorithms that operate without labels or prior training. Instead, the model is provided with raw, unlabeled data and must derive its own rules and structure by identifying similarities, differences, and patterns, without receiving explicit instructions on how to handle each data point. Unsupervised learning algorithms are particularly effective for handling complex processing tasks, such as grouping large datasets into clusters. They excel at uncovering previously hidden patterns within the data and can reveal features that are valuable for categorizing information.
+
+![](images/unsupervised.png){width="60%"}
+
+Source:geeks for geeks
+
+**Examples**
+
+Here are some examples of unsupervised learning:
+
+-   **Clustering, e.g. K-means clustering**
+-   **Association, e.g. Apriori algorithm**
+-   **Dimensionality reduction, e.g. Principal Component Analysis (PCA)**
+-   **Anomaly detection, e.g. Isolation forest**
+
+## [**Clustering Use Case**]{style="color: #2C6D26;"}
+
+The `agridat` package in R contains a wealth of agricultural datasets that can be used for various statistical analyses, including clustering. Clustering is a technique that can group similar data points based on their attributes. We can use the datasets in `agridat` to demonstrate clustering techniques. Let's say we want to cluster different varieties of corn based on several agronomic traits (like yield, height, and so on) to understand which varieties are similar to each other.
+
+### **Step 1 - Install and Load Necessary Packages**
+
+Make sure you have the `agricolae` package installed along with `factoextra` package for visualization.
+
+```{r}
+#|eval=TRUE
+#|results='hide'
+#|echo = FALSE
+suppressPackageStartupMessages({install.packages("agricolae")  # agricolae for agricultural methods     
+install.packages("factoextra")})  # for visualizing clustering     
+suppressMessages({library(agricolae)     
+library(factoextra)}) 
+```
+
+### **Step 2 - Load a Dataset**
+
+For this example, we will use the `corn.yield` dataset from `agridat`. This dataset includes information on different corn varieties and their yields.
+
+```{r}
+#|eval=TRUE
+#|tidy=FALSE
+#|size='tiny'
+# Example data - replace with your own dataset   
+data(iris)     
+df <- iris[, -5]  # Exclude Species for clustering
+```
+
+### **Step 3 - Data Preprocessing**
+
+It's essential to preprocess the data, such as scaling or normalizing if the features have different scales.
+
+```{r}
+df_scaled <- scale(df) #scale the dataset
+```
+
+### **Step 4 - K-means Clustering**
+
+We can use the `k-means` clustering method and the elbow method to find the optimal number of clusters.
+
+```{r}
+# Trying different values of k      
+set.seed(123)  # For reproducibility    
+kmeans_result <- kmeans(df_scaled, centers = 3, nstart = 25)      
+```
+
+Use packages like `factoextra` to visualize the clustering results.
+
+### **Step 5 - Visualizing Clusters**
+
+We can visualize the clustering results.
+
+```{r}
+# Visualizing the clustering     
+fviz_cluster(kmeans_result, data = df_scaled, geom = "point", ellipse.type = "convex") +      
+  theme_minimal() 
+```
+
+You can analyze the composition of the clusters and draw conclusions based on your research questions.
+
+**Using agricolae for further analysis:**
+
+If you want to perform multiple comparisons or ANOVA after clustering, you can integrate agricolae methods.
+
+For example, after clustering, if you want to compare the means of different clusters, you could use:
+
+```{r}
+# Add cluster memberships to the original dataset  
+df$Cluster <- factor(kmeans_result$cluster)     
+# Perform ANOVA    
+anova_result <- aov(Sepal.Length ~ Cluster, data = df)    
+summary(anova_result)     
+# Using Tukey's HSD test to compare means    
+HSD.test(anova_result, "Cluster", group = TRUE)
+```
+
+-   Since the p-value is extremely low, we conclude that there are significant differences between the clusters being analyzed. This typically implies that at least one of the cluster means differs from the others, warranting further investigation into the specific group differences (for example, using post-hoc tests). In summary, the ANOVA results indicate strong evidence that the clusters being compared have different means, and the differences are highly statistically significant.
+
+## [**Anomaly Detection Use Case**]{style="color: #2C6D26;"}
+
+Anomaly detection in agriculture is crucial for identifying irregularities in data, such as unusual crop yields, abnormal soil conditions, or deviations in environmental variables. Here, I'll walk you through an example of anomaly detection using a synthetic dataset related to crop yields. We'll use R and the `anomalize` package, which is suitable for time series anomaly detection.
+
+**Objective**: Detect anomalies in crop yield data over time.
+
+### **Step 1 - Install and Load Required Packages**
+
+If you haven’t installed the required packages, you can do so using the following commands:
+
+```{r}
+#|eval=TRUE
+#|warning=FALSE
+#|message= FALSE
+#|results='hide'
+
+  
+#install.packages("ggplot2")  
+#install.packages("dplyr")  
+#install.packages("tibble")  
+suppressPackageStartupMessages({install.packages("anomalize")
+library(anomalize)  
+library(ggplot2)  
+library(dplyr)  
+library(tibble)})
+```
+
+### **Step 2 - Create a Sample Dataset**
+
+Let's create a synthetic dataset that simulates monthly crop yields with some anomalies:
+
+```{r}
+set.seed(123)   
+# Generate synthetic data  
+dates <- seq.Date(from = as.Date("2023-01-01"),
+                  by = "month", length.out = 24)
+yields <- rnorm(24, mean = 50, sd = 10)  # Normal crop yields 
+yields[c(5, 12, 18)] <- yields[c(5, 12, 18)] + c(20, -15, 25)  # 
+```
+
+Adding anomalies
+
+```{r}
+# Create a data frame  
+crop_data <- tibble(date = dates, yield = yields) 
+# Print the dataset  
+print(crop_data)
+```
+
+### **Step 3 - Detect Anomalies**
+
+We’ll use the `anomalize` package to detect anomalies in the crop yield data. The package provides a straightforward way to apply anomaly detection to time series data.
+
+```{r}
+#|message=FALSE
+# Convert to time series object  
+crop_data_ts <- crop_data %>%      
+  arrange(date) %>%     
+  as_tibble() %>%      
+  time_decompose(yield, method = "stl") %>%     
+  anomalize(remainder, method = "iqr") %>%  
+  time_recompose()   
+# Print the anomaly results  
+print(crop_data_ts)
+```
+
+### **Step 4 - Visualize the Results**
+
+We can visualize the detected anomalies to better understand where they occur:
+
+```{r}
+# Plot the results  
+ggplot(crop_data_ts, aes(x = date, y = observed)) +   
+  geom_line(color = "blue") +     
+  geom_point(data = subset(crop_data_ts, anomaly == "Yes"), 
+             aes(color = anomaly), size = 3) +      
+  labs(title = "Anomaly Detection in Crop Yields",        
+       x = "Date",        
+       y = "Observed Yield") +   
+  theme_minimal()
+```
+
+**Summary**
+
+1.  **Create a Dataset**: We generated a synthetic dataset with normal crop yields and added some anomalies.
+2.  **Apply Anomaly Detection**: We used the `anomalize` package to detect anomalies in the time series data.
+3.  **Visualize Results**: We plotted the results to highlight the detected anomalies.
+
+This example demonstrates a basic approach to anomaly detection in agricultural data. For real-world applications, you might have more complex datasets and might need to explore additional preprocessing steps or more sophisticated anomaly detection methods based on the nature of your data.
